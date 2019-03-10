@@ -1,0 +1,61 @@
+---
+- name : Copy the Weblogic Installation files to ORACLE_HOME
+  become: yes
+  become_user: weblogic 
+  tags: app,cpbinaries
+  copy:
+    src: "{{ item }}"
+    dest: "{{ oracle_home }}"
+    mode: 0777
+  with_items:
+    - "fmw_12.2.1.3.0_wls.jar"
+    - "oraInst.loc"
+    - "install.file"
+    - "DemoIdentity.jks"	
+- name: Copy the Template files 
+  become: yes
+  become_user: weblogic 
+  tags: cpscripts
+  template:
+     src: "{{ item.src }}"
+     dest: "{{ oracle_home }}/{{item.dest}}"
+     mode: 0755
+  with_items:
+    - { src: 'CreateDomain.sh.j2', dest: 'CreateDomain.sh' }
+    - { src: 'create-wls-domain.py.j2', dest: 'create-wls-domain.py' }
+    - { src: 'Map-Resources.j2', dest: 'Map-Resources.py' }
+- name: Install Weblogic 
+  become: yes
+  become_user: weblogic
+  tags: installweblogic,app
+  register: wlsinstall
+  shell: "java -jar {{ oracle_home}}/fmw*.jar -silent -invPtrLoc {{oracle_home}}/oraInst.loc -responseFile {{oracle_home}}/install.file -ignoreSysPrereqs -force -novalidation ORACLE_HOME={{oracle_home}} INSTALL_TYPE='WebLogic Server'"
+- name: Set WLST Environment and Create Domain
+  tags: app,createdomain
+  become: yes
+  become_user: weblogic
+  command:  "bash /opt/oracle/CreateDomain.sh"
+  register: setwlsenv
+  environment:
+          USER_MEM_ARGS: "-Djava.security.egd=file:/dev/./urandom"
+- debug:
+    msg: "{{ setwlsenv.stdout_lines }}"
+- name: Start the AdminServer
+  tags: startadminserver
+  become: yes
+  become_user: weblogic
+  command: "bash /opt/oracle/domains/mwidomain/bin/startWebLogic.sh > adminserver.log &"
+  register: startadminserver
+  run_once: yes
+  when: ansible_hostname == "{{ groups['app'][0] }}" and amprevalidate is failed
+  environment:
+          USER_MEM_ARGS: "-Djava.security.egd=file:/dev/./urandom"
+- name: wait for the adminserver to start and open the port
+  tags: amvalidate
+  wait_for:
+    host: "{{groups['app'][0]}}"
+    port: "{{admin_ListenPort}}"
+    delay: 10
+    timeout: 120
+    state: started
+  when: ansible_hostname == "{{groups['app'][0]}}"

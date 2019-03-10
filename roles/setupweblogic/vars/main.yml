@@ -1,0 +1,21 @@
+# Paths
+oracle_home: "/opt/oracle"
+wlshome: "/opt/oracle/wlserver"
+domainroot: "/opt/oracle/domains"
+JAVA_HOME: "/opt/oracle/jdk1.8.0_201"
+
+
+# Credentials
+domain_name: "mwidomain"
+domain_username: "weblogic"
+domain_password: "weblogic1"
+
+
+# Admin Server
+admin_ListenPort: 8001
+# The console should be accessed at this port over HTTPS once the domain is ready
+admin_AdministrationPort: 9001
+
+# Managed Server Names
+ManagedServer1_Name: server1 
+ManagedServer1_Port: 8002

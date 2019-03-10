@@ -1,0 +1,4 @@
+connect('{{domain_username}}','{{domain_password}}','t3://{{ hostvars[groups['app'][0]]['ansible_env'].SSH_CONNECTION.split(' ')[2] }}:{{admin_ListenPort}}')
+edit()
+startEdit()
+
